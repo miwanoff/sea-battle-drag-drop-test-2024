@@ -4,7 +4,6 @@ const gameBoardsContainer = document.querySelector("#game-boards");
 const startButton = document.querySelector("#start");
 const turn = document.querySelector("#turn");
 const info = document.querySelector("#info");
-const turnDisplay = document.querySelector("#whose-go");
 
 const singlePlayerButton = document.querySelector("#singlePlayerButton");
 const multiPlayerButton = document.querySelector("#multiPlayerButton");
@@ -49,10 +48,10 @@ function playGameMulti(socket) {
 
   if (enemyReady) {
     if (currentPlayer === "user") {
-      turnDisplay.innerHTML = "Your Go";
+      turn.innerHTML = "Your Go";
     }
     if (currentPlayer === "enemy") {
-      turnDisplay.innerHTML = "Enemy's Go";
+      turn.innerHTML = "Enemy's Go";
     }
   }
 }
@@ -116,8 +115,12 @@ function startMultiPlayer() {
 
   // Кнопка Start Game для Multi Player
   startButton.addEventListener("click", () => {
-    if (allShipsPlaced) playGameMulti(socket);
-    else info.innerHTML = "Please place all ships";
+    if (allShipsPlaced) {
+      info.innerHTML = "The game is on";
+      playGameMulti(socket);
+    } else
+      info.innerHTML =
+        "<span style='color: red;'>Please place all ships!</span>";
   });
 
   //const allBoardBlocks = document.querySelectorAll("#enemy div");
@@ -125,7 +128,8 @@ function startMultiPlayer() {
   // Прослуховування події пострілу
   document.querySelectorAll("#enemy div").forEach((block) => {
     block.addEventListener("click", () => {
-      if (currentPlayer === "user" && ready && enemyReady) {
+      console.log("currentPlayer" + currentPlayer);
+      if (/*currentPlayer === "user" && */ ready && enemyReady) {
         shotFired = parseInt(block.id.substring(6));
         console.log("shotFired" + shotFired);
         socket.emit("fire", shotFired);
@@ -135,17 +139,25 @@ function startMultiPlayer() {
 
   // Отримано сповіщення про постріл
   socket.on("fire", (id) => {
+    console.log("enemyGo " + id);
     enemyGo(id);
-    const square = document.querySelectorAll("#user div")[id];
+    const square = document.querySelectorAll("#human div")[id];
     socket.emit("fire-reply", square.classList);
     playGameMulti(socket);
   });
 
   // Відповідь на отримане сповіщення про постріл
   socket.on("fire-reply", (classList) => {
+    console.log("fire-reply");
+    console.log(classList);
     revealSquare(classList);
     playGameMulti(socket);
   });
+
+  // const allBoardBlocks = document.querySelectorAll("#enemy div");
+  // allBoardBlocks.forEach((block) =>
+  //   block.addEventListener("click", handleClick)
+  // );
 }
 
 function rotate() {
@@ -321,99 +333,73 @@ function enemyGo(square) {
     turn.textContent = "Enemy Go!";
     info.textContent = "Enemy is thinking...";
 
-    setTimeout(() => {
-      if (gameMode === "singlePlayer")
-        square = Math.floor(Math.random() * width * width);
-      const allBoardsBlocks = document.querySelectorAll("#human div");
+    //   setTimeout(() => {
+    if (gameMode === "singlePlayer")
+      square = Math.floor(Math.random() * width * width);
+    const allBoardsBlocks = document.querySelectorAll("#human div");
 
-      if (
-        allBoardsBlocks[square].classList.contains("taken") &&
-        allBoardsBlocks[square].classList.contains("boom")
-      ) {
-        if (gameMode === "singlePlayer") {
-          enemyGo();
-          //return;
-        }
-      } else if (
-        allBoardsBlocks[square].classList.contains("taken") &&
-        !allBoardsBlocks[square].classList.contains("boom")
-      ) {
-        allBoardsBlocks[square].classList.add("boom");
-        info.textContent = "enemy hit your ship!";
-        let classes = Array.from(allBoardsBlocks[square].classList);
-        classes = classes.filter(
-          (className) =>
-            className !== "block" &&
-            className !== "boom" &&
-            className !== "taken"
-        );
-        enemyHits.push(...classes);
-        console.log(enemyHits);
-        checkScore("enemy", enemyHits, enemySunkShips);
-      } else {
-        info.textContent = "Nothing hit";
-        allBoardsBlocks[square].classList.add("empty");
+    if (
+      allBoardsBlocks[square].classList.contains("taken") &&
+      allBoardsBlocks[square].classList.contains("boom")
+    ) {
+      if (gameMode === "singlePlayer") {
+        enemyGo();
+        //return;
       }
-    }, 3000);
-    setTimeout(() => {
-      humanTurn = true;
-      turn.textContent = "Your Go!";
-      info.textContent = "Your turn!";
-      const allBoardBlocks = document.querySelectorAll("#enemy div");
-      allBoardBlocks.forEach((block) =>
-        block.addEventListener("click", handleClick)
+    } else if (
+      allBoardsBlocks[square].classList.contains("taken") &&
+      !allBoardsBlocks[square].classList.contains("boom")
+    ) {
+      allBoardsBlocks[square].classList.add("boom");
+      info.textContent = "enemy hit your ship!";
+      let classes = Array.from(allBoardsBlocks[square].classList);
+      classes = classes.filter(
+        (className) =>
+          className !== "block" && className !== "boom" && className !== "taken"
       );
-    }, 6000);
+      enemyHits.push(...classes);
+      console.log(enemyHits);
+      checkScore("enemy", enemyHits, enemySunkShips);
+    } else {
+      info.textContent = "Nothing hit";
+      allBoardsBlocks[square].classList.add("empty");
+    }
+    //   }, 3000);
+    //   setTimeout(() => {
+    humanTurn = true;
+    turn.textContent = "Your Go!";
+    info.textContent = "Your turn!";
+
+    //  }, 6000);
   }
 }
 
-// function enemyGo() {
-//   if (!gameOver) {
-//     turn.textContent = "enemys Go!";
-//     info.textContent = "enemys is thinking...";
-
-//     setTimeout(() => {
-//       let rand = Math.floor(Math.random() * width * width);
-//       const allBoardsBlocks = document.querySelectorAll("#human div");
-
-//       if (
-//         allBoardsBlocks[rand].classList.contains("taken") &&
-//         allBoardsBlocks[rand].classList.contains("boom")
-//       ) {
-//         enemyGo();
-//         return;
-//       } else if (
-//         allBoardsBlocks[rand].classList.contains("taken") &&
-//         !allBoardsBlocks[rand].classList.contains("boom")
-//       ) {
-//         allBoardsBlocks[rand].classList.add("boom");
-//         info.textContent = "enemy hit your ship!";
-//         let classes = Array.from(allBoardsBlocks[rand].classList);
-//         classes = classes.filter(
-//           (className) =>
-//             className !== "block" &&
-//             className !== "boom" &&
-//             className !== "taken"
-//         );
-//         enemyHits.push(...classes);
-//         console.log(enemyHits);
-//         checkScore("enemy", enemyHits, enemySunkShips);
-//       } else {
-//         info.textContent = "Nothing hit";
-//         allBoardsBlocks[rand].classList.add("empty");
-//       }
-//     }, 3000);
-//     setTimeout(() => {
-//       humanTurn = true;
-//       turn.textContent = "Your Go!";
-//       info.textContent = "Your turn!";
-//       const allBoardBlocks = document.querySelectorAll("#enemy div");
-//       allBoardBlocks.forEach((block) =>
-//         block.addEventListener("click", handleClick)
-//       );
-//     }, 6000);
-//   }
-// }
+function revealSquare(classList) {
+  if (!gameOver) {
+    const enemySquare = document.querySelector(
+      `#enemy div[id='block-${shotFired}']`
+    );
+    console.log("shotFired " + shotFired);
+    const obj = Object.values(classList);
+    console.log("obj");
+    console.log(obj);
+    if (obj.includes("taken")) {
+      enemySquare.classList.add("boom");
+      info.innerHTML = "You hit enemys ship!";
+      let classes = Array.from(obj);
+      classes = classes.filter(
+        (className) =>
+          className !== "block" && className !== "boom" && className !== "taken"
+      );
+      humanHits.push(...classes);
+      console.log(humanHits);
+      checkScore("human", humanHits, humanSunkShips);
+    } else {
+      info.textContent = "You missed it";
+      enemySquare.classList.add("empty");
+    }
+  }
+}
 
 function handleClick(event) {
   if (!gameOver)
